@@ -16,7 +16,7 @@ const int YRES = 500;
  * IOTest Code
  */
 
-// PART 1
+// PART 1.1
 bool Superquadric::IOTest(const Vector3d &point) {
     // Transforms the point from world space to body coordinates
     /* Explanation: point is given in world space, thus we have big X.
@@ -32,7 +32,7 @@ bool Superquadric::IOTest(const Vector3d &point) {
     }
     Vector4d body_point = worldToBodySpace * Vector4d(point, 1.0);
 
-    // Uses transformed body coordinate to compute Superquadric inside-outside function
+    // Compute Superquadric inside-outside function using transformed body coordinate
     double x = body_point[0];
     double y = body_point[1];
     double z = body_point[2];
@@ -40,13 +40,30 @@ bool Superquadric::IOTest(const Vector3d &point) {
     return (in_out < 0);
 }
 
+// PART 1.2
 bool Assembly::IOTest(const Vector3d &point) {
-    /**
-     * PART 1
-     * TODO: Implement the IO Test function for an assembly (recursively call
-     *       IOTest on the children). Make sure to apply any transformations
-     *       to the assembly before calling IOTest on the children.
-     */
+    // Transforms the point from world space to assembly coordinates
+    // For Explanation, look at Superquadric::IOTest 
+    Matrix4d worldToAssemblySpace = Matrix4d::Identity();
+    for (int i = 0; i < transforms.size(); i++) {
+        Matrix4d transform = transforms[i]->GetMatrix();
+        worldToAssemblySpace = worldToAssemblySpace * transform.inverse();
+    }
+    Vector3d assembly_point = (worldToAssemblySpace * Vector4d(point, 1.0)).head<3>();
+
+    /* Recursively calls IOTest on all children assembly and primitive objects
+     * using tranformed assembly coordinate */
+    for (int i = 0; i < children.size(); i++) {
+
+        bool inside = children[i]->IOTest(assembly_point);
+
+        // Returns true if the point is inside any of its children objects
+        if (inside) {
+            return true;
+        }
+    }
+
+    // Returns false if none of the children objects have returned true
     return false;
 }
 
