@@ -26,13 +26,8 @@ bool Superquadric::IOTest(const Vector3d &point) {
      * So Inverse Transform Matrix O on (X) = x = S^-1(R^- 1(T^-1(big X))).
      * Notice the 1st object transform applied is the most right in the matrix multiplication.
      * That's what's happening here. */
-    Matrix4d worldToBodySpace = Matrix4d::Identity();
-    for (size_t i = 0; i < transforms.size(); i++) {
-        Matrix4d transform = transforms[i]->GetMatrix();
-        worldToBodySpace = worldToBodySpace * transform.inverse();
-    }
     Vector4d vec_point(point[0], point[1], point[2], 1.0);
-    Vector4d body_point = worldToBodySpace * vec_point;
+    Vector4d body_point = getInverseTransformMatrix() * vec_point;
 
     // Compute Superquadric inside-outside function using transformed body coordinate
     double x = body_point[0];
@@ -46,14 +41,8 @@ bool Superquadric::IOTest(const Vector3d &point) {
 // PART 1.2
 bool Assembly::IOTest(const Vector3d &point) {
     // Transforms the point from world space to assembly coordinates
-    // For Explanation, look at Superquadric::IOTest 
-    Matrix4d worldToAssemblySpace = Matrix4d::Identity();
-    for (size_t i = 0; i < transforms.size(); i++) {
-        Matrix4d transform = transforms[i]->GetMatrix();
-        worldToAssemblySpace = worldToAssemblySpace * transform.inverse();
-    }
     Vector4d vec_point(point[0], point[1], point[2], 1.0);
-    Vector3d assembly_point = (worldToAssemblySpace * vec_point).head<3>();
+    Vector3d assembly_point = (getInverseTransformMatrix() * vec_point).head<3>();
 
     /* Recursively calls IOTest on all children assembly and primitive objects
      * using tranformed assembly coordinate */

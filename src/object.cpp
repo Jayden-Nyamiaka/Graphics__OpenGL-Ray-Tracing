@@ -51,6 +51,15 @@ void Material::SetOpenGLMaterial() {
  */
 
 
+// Every Object has transforms so this returns the inverse transform matrix for that
+Eigen::Matrix4d Object::getInverseTransformMatrix() {
+    Eigen::Matrix4d inverseTransform = Matrix4d::Identity();
+    for (size_t i = 0; i < transforms.size(); i++) {
+        inverseTransform *= transforms[i]->GetMatrix().inverse();
+    }
+    return inverseTransform;
+}
+
 void Object::OpenGLRender() {
     for (auto it = transforms.rbegin(); it != transforms.rend(); it++) {
         (*it)->OpenGLTransform();

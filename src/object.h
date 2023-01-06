@@ -38,6 +38,9 @@ public:
     Object(const Object&) = delete;
 
     Object(): transforms(std::vector<std::unique_ptr<Transformation>>()) {};
+    // Extension of transforms
+    Eigen::Matrix4d getInverseTransformMatrix();
+
     virtual void Tesselate(std::vector<Eigen::Vector3f> &vertices, std::vector<Eigen::Vector3f> &normals) = 0;
     virtual void OpenGLRender();
     
