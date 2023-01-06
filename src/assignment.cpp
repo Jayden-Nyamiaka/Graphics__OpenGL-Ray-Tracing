@@ -16,14 +16,28 @@ const int YRES = 500;
  * IOTest Code
  */
 
+// PART 1
 bool Superquadric::IOTest(const Vector3d &point) {
-    /**
-     * PART 1
-     * TODO: Implement the IO Test function for a superquadric. Remember to
-     *       apply any transformations to the superquadric before testing
-     *       against the IO function.
-     */
-    return false;
+    // Transforms the point from world space to body coordinates
+    /* Explanation: point is given in world space, thus we have big X.
+     * The inside outside function takes little x, so we need to get little x.
+     * big X = Transform Matrix O on (x) = T(R(S(x))) where TRS are transforms applied in order S, R, T.
+     * So Inverse Transform Matrix O on (X) = x = S^-1(R^- 1(T^-1(big X))).
+     * Notice the 1st object transform applied is the most right in the matrix multiplication.
+     * That's what's happening here. */
+    Matrix4d worldToBodySpace = Matrix4d::Identity();
+    for (int i = 0; i < transforms.size(); i++) {
+        Matrix4d transform = transforms[i]->GetMatrix();
+        worldToBodySpace = worldToBodySpace * transform.inverse();
+    }
+    Vector4d body_point = worldToBodySpace * Vector4d(point, 1.0);
+
+    // Uses transformed body coordinate to compute Superquadric inside-outside function
+    double x = body_point[0];
+    double y = body_point[1];
+    double z = body_point[2];
+    double in_out = -1.0 + pow(z*z, 1.0/exp1) + pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0) , exp0/exp1):
+    return (in_out < 0);
 }
 
 bool Assembly::IOTest(const Vector3d &point) {
