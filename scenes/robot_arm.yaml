@@ -1,0 +1,344 @@
+camera:
+  translate: { delta: [ 0, 0, -8.7 ] }
+  rotate: { axis: [ 0, 0, 1 ], angle: -60 }
+  frustum:
+    aspect_ratio: 1.0
+    fov: 60.0
+    near: 0.2
+    far: 20
+lights:
+- position: [ -3, 2, 4, 1 ]
+  color: [ 0.8, 0.8, 0.8 ]
+  attenuation: 0.1
+objects:
+- name: jaw_long
+  type: superquadric
+  root: false
+  exp0: 0.1
+  exp1: 0.1
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.9, 0.9, 0.9 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 8.0
+  transforms:
+  - { type: "scale", scale: [ 0.2, 0.1, 0.5 ] }
+  - { type: "translate", delta: [ 0.0, 0.0, 0.5 ] }
+- name: jaw_short
+  type: superquadric
+  root: false
+  exp0: 0.1
+  exp1: 0.1
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.9, 0.9, 0.9 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 8.0
+  transforms:
+  - { type: "scale", scale: [ 0.2, 0.2, 0.1 ] }
+  - { type: "translate", delta: [ 0.0, 0.1, 1.05 ] }
+- name: elliptical_head
+  type: superquadric
+  root: false
+  exp0: 0.8
+  exp1: 0.1
+  material:
+    ambient: [ 0.12, 0.12, 0.2 ]
+    diffuse: [ 0.24, 0.24, 0.4 ]
+    specular: [ 0.36, 0.36, 0.6 ]
+    shininess: 2.0
+  transforms:
+  - { type: "scale", scale: [ 0.45, 0.8, 0.3 ] }
+  - { type: "translate", delta: [ 0.0, 0.0, 0.4 ] }
+- name: arm_cylinder
+  type: superquadric
+  root: false
+  exp0: 0.8
+  exp1: 0.1
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.9, 0.9, 0.9 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 1.0
+  transforms:
+  - { type: "scale", scale: [ 0.3, 0.3, 2.0 ] }
+  - { type: "translate", delta: [ 0.0, 0.0, 1.8 ] }
+- name: arm_rectangle
+  type: superquadric
+  root: false
+  exp0: 0.1
+  exp1: 0.1
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.9, 0.9, 0.9 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 1.0
+  transforms:
+  - { type: "scale", scale: [ 0.4, 0.4, 2.0 ] }
+- name: small_ball
+  type: superquadric
+  root: false
+  exp0: 1.0
+  exp1: 1.0
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.9, 0.9, 0.9 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 1.0
+  transforms:
+  - { type: "scale", scale: [ 0.1, 0.1, 0.1 ] }
+- name: arm_crosspiece
+  type: superquadric
+  root: false
+  exp0: 1.0
+  exp1: 0.1
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.9, 0.9, 0.9 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 1.0
+  transforms:
+  - { type: "scale", scale: [ 0.1, 0.1, 0.8 ] }
+  - { type: "rotate", axis: [ 0.0, 0.0, 1.0 ], angle: -90.0 }
+  - { type: "rotate", axis: [ 1.0, 0.0, 0.0 ], angle: 90.0 }
+  - { type: "rotate", axis: [ 0.0, 0.0, 1.0 ], angle: 90.0 }
+- name: left_brace
+  type: superquadric
+  root: false
+  exp0: 0.1
+  exp1: 0.1
+  material:
+    ambient: [ 0.12, 0.12, 0.2 ]
+    diffuse: [ 0.24, 0.24, 0.4 ]
+    specular: [ 0.36, 0.36, 0.6 ]
+    shininess: 2.0
+  transforms:
+  - { type: "scale", scale: [ 0.75, 0.4, 0.1 ] }
+  - { type: "translate", delta: [ -0.5, 0.0, -0.5 ] }
+- name: right_brace
+  type: superquadric
+  root: false
+  exp0: 0.1
+  exp1: 0.1
+  material:
+    ambient: [ 0.12, 0.12, 0.2 ]
+    diffuse: [ 0.24, 0.24, 0.4 ]
+    specular: [ 0.36, 0.36, 0.6 ]
+    shininess: 2.0
+  transforms:
+  - { type: "scale", scale: [ 0.75, 0.4, 0.1 ] }
+  - { type: "translate", delta: [ -0.5, 0.0, 0.5 ] }
+- name: swivel_cylinder
+  type: superquadric
+  root: false
+  exp0: 1.0
+  exp1: 0.1
+  material:
+    ambient: [ 0.12, 0.12, 0.2 ]
+    diffuse: [ 0.24, 0.24, 0.4 ]
+    specular: [ 0.36, 0.36, 0.6 ]
+    shininess: 2.0
+  transforms:
+  - { type: "scale", scale: [ 0.8, 0.8, 0.4 ] }
+  - { type: "translate", delta: [ 0.0, 0.0, -0.3 ] }
+- name: counterweight
+  type: superquadric
+  root: false
+  exp0: 0.5
+  exp1: 0.5
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.9, 0.9, 0.9 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 1.0
+  transforms:
+  - { type: "scale", scale: [ 0.6, 0.6, 0.6 ] }
+  - { type: "translate", delta: [ 0.0, 0.0, -2.5 ] }
+- name: spherical_joint
+  type: superquadric
+  root: false
+  exp0: 1.0
+  exp1: 1.0
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.9, 0.9, 0.9 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 1.0
+  transforms:
+  - { type: "scale", scale: [ 0.3, 0.3, 0.3 ] }
+- name: robot_base
+  type: superquadric
+  root: false
+  exp0: 0.1
+  exp1: 0.1
+  material:
+    ambient: [ 0.12, 0.12, 0.2 ]
+    diffuse: [ 0.24, 0.24, 0.4 ]
+    specular: [ 0.36, 0.36, 0.6 ]
+    shininess: 2.0
+  transforms:
+  - { type: "scale", scale: [ 2.0, 3.0, 0.4 ] }
+  - { type: "translate", delta: [ 0.0, 0.0, -2.65 ] }
+- name: robot_base_2
+  type: superquadric
+  root: false
+  exp0: 0.1
+  exp1: 0.1
+  material:
+    ambient: [ 0.12, 0.12, 0.2 ]
+    diffuse: [ 0.24, 0.24, 0.4 ]
+    specular: [ 0.36, 0.36, 0.6 ]
+    shininess: 2.0
+  transforms:
+  - { type: "scale", scale: [ 0.9, 0.9, 1.0 ] }
+  - { type: "translate", delta: [ 0.0, 0.0, -1.3 ] }
+- name: gray_floor
+  type: superquadric
+  root: false
+  exp0: 0.7
+  exp1: 0.3
+  material:
+    ambient: [ 0.2, 0.2, 0.2 ]
+    diffuse: [ 0.6, 0.6, 0.6 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 12.0
+  transforms:
+  - { type: "scale", scale: [ 15.0, 15.0, 0.1 ] }
+- name: yellow_cube
+  type: superquadric
+  root: false
+  exp0: 0.5
+  exp1: 0.1
+  material:
+    ambient: [ 0.1, 0.1, 0.0 ]
+    diffuse: [ 0.7, 0.7, 0.0 ]
+    specular: [ 0.3, 0.3, 0.0 ]
+    shininess: 5.0
+  transforms:
+  - { type: "scale", scale: [ 0.2, 0.2, 0.5 ] }
+  - { type: "translate", delta: [ 0.0, 0.0, 2.0 ] }
+- name: red_cube
+  type: superquadric
+  root: false
+  exp0: 0.5
+  exp1: 0.1
+  material:
+    ambient: [ 0.2, 0.0, 0.0 ]
+    diffuse: [ 0.9, 0.1, 0.1 ]
+    specular: [ 0.2, 0.2, 0.2 ]
+    shininess: 5.0
+  transforms:
+  - { type: "scale", scale: [ 0.4, 0.4, 0.3 ] }
+  - { type: "translate", delta: [ 0.0, 3.5, 0.35 ] }
+- name: green_cylinder
+  type: superquadric
+  root: false
+  exp0: 1.0
+  exp1: 0.1
+  material:
+    ambient: [ 0.0, 0.2, 0.0 ]
+    diffuse: [ 0.1, 0.9, 0.1 ]
+    specular: [ 0.1, 0.1, 0.1 ]
+    shininess: 3.0
+  transforms:
+  - { type: "scale", scale: [ 0.2, 0.2, 0.5 ] }
+  - { type: "translate", delta: [ -3.0, 2.5, 0.55 ] }
+- name: jaw_1
+  type: assembly
+  root: false
+  children:
+  - jaw_long
+  - jaw_short
+  transforms:
+  - { type: "rotate", axis: [ 1.0, 0.0, 0.0 ], angle: 11.4592 }
+  - { type: "translate", delta: [ 0.0, -0.3, 0.7 ] }
+- name: jaw_2
+  type: assembly
+  root: false
+  children:
+  - jaw_long
+  - jaw_short
+  transforms:
+  - { type: "rotate", axis: [ 0.0, 0.0, 1.0 ], angle: 180.0 }
+  - { type: "rotate", axis: [ 1.0, 0.0, 0.0 ], angle: -11.4592 }
+  - { type: "translate", delta: [ 0.0, 0.3, 0.7 ] }
+- name: head
+  type: assembly
+  root: false
+  children:
+  - jaw_1
+  - jaw_2
+  - elliptical_head
+  - spherical_joint
+  - yellow_cube
+  transforms:
+  - { type: "rotate", axis: [ 0.0, 1.0, 0.0 ], angle: -34.3775 }
+  - { type: "translate", delta: [ 0.0, 0.0, 4.0 ] }
+- name: arm_extendable
+  type: assembly
+  root: false
+  children:
+  - head
+  - arm_cylinder
+  transforms:
+  - { type: "rotate", axis: [ 0.0, 0.0, 1.0 ], angle: 90.0 }
+  - { type: "translate", delta: [ 0.0, 0.0, 0.6 ] }
+- name: arm_with_crosspiece
+  type: assembly
+  root: false
+  children:
+  - arm_rectangle
+  - arm_extendable
+  - counterweight
+  - arm_crosspiece
+  transforms:
+  - { type: "rotate", axis: [ 1.0, 0.0, 0.0 ], angle: 17.1887 }
+  - { type: "rotate", axis: [ 0.0, 0.0, 1.0 ], angle: 90.0 }
+  - { type: "rotate", axis: [ 1.0, 0.0, 0.0 ], angle: 90.0 }
+  - { type: "rotate", axis: [ 0.0, 0.0, 1.0 ], angle: 180.0 }
+- name: arm_without_swivel
+  type: assembly
+  root: false
+  children:
+  - arm_with_crosspiece
+  - left_brace
+  - right_brace
+  transforms:
+  - { type: "rotate", axis: [ 0.0, 1.0, 0.0 ], angle: -90.0 }
+  - { type: "translate", delta: [ 0.0, 0.0, 1.0 ] }
+- name: arm_with_swivel
+  type: assembly
+  root: false
+  children:
+  - arm_without_swivel
+  - swivel_cylinder
+  transforms:
+  - { type: "rotate", axis: [ 0.0, 0.0, 1.0 ], angle: -57.2958 }
+- name: robot
+  type: assembly
+  root: false
+  children:
+  - arm_with_swivel
+  - robot_base
+  - robot_base_2
+  transforms:
+  - { type: "translate", delta: [ 0.0, -1.5, -1.5 ] }
+- name: floor
+  type: assembly
+  root: false
+  children:
+  - gray_floor
+  - green_cylinder
+  - red_cube
+  transforms:
+  - { type: "translate", delta: [ 0.0, 0.0, -4.7 ] }
+- name: scene
+  type: assembly
+  root: true
+  children:
+  - robot
+  - floor
+  transforms:
+  - { type: "rotate", axis: [ 0.0, 0.0, 1.0 ], angle: 35.0 }
+  - { type: "translate", delta: [ 0.0, 0.0, 3.5 ] }
+  

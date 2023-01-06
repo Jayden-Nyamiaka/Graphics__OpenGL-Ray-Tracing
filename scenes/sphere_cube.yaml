@@ -1,0 +1,51 @@
+camera:
+  translate: { delta: [ 0, 0, -5 ] }
+  rotate: { axis: [0, 1, 0 ], angle: 0 }
+  frustum:
+    aspect_ratio: 1.0
+    fov: 60.0
+    near: 0.2
+    far: 20
+lights:
+- position: [ -2, 2, 2, 1 ]
+  color: [ 1, 1, 1 ]
+  attenuation: 0
+- position: [ 2, 0, 2, 1 ]
+  color: [ 0, 0, 1 ]
+  attenuation: 0
+objects:
+- name: sphere
+  type: superquadric
+  root: false
+  exp0: 1.0
+  exp1: 1.0
+  material:
+    ambient: [ 0.2, 0.0, 0.0 ]
+    diffuse: [ 0.8, 0.0, 0.0 ]
+    specular: [ 1.0, 1.0, 1.0 ]
+    shininess: 15
+  transforms:
+  - { type: "scale", scale: [ 0.4, 0.4, 0.4 ] }
+  - { type: "translate", delta: [0.6, 0.0, 0.0] }
+- name: cube
+  type: superquadric
+  root: false
+  exp0: 0.01
+  exp1: 0.01
+  material:
+    ambient: [ 0.0, 0.2, 0.0 ]
+    diffuse: [ 0.0, 0.8, 0.0 ]
+    specular: [ 1.0, 1.0, 1.0 ]
+    shininess: 15
+  transforms:
+  - { type: "scale", scale: [ 0.4, 0.4, 0.4 ] }
+  - { type: "rotate", axis: [ 1.0, 1.0, 0.0 ], angle: 60.0 }
+  - { type: "translate", delta: [-0.6, 0.0, 0.0] }
+- name: assembly
+  type: assembly
+  root: true
+  children:
+  - cube
+  - sphere
+  transforms:
+  - { type: "translate", delta: [0.0, 0.0, 0.0 ] }
