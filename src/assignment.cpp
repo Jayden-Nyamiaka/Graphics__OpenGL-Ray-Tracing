@@ -16,6 +16,7 @@ const int YRES = 500;
  * IOTest Code
  */
 
+
 // PART 1.1
 bool Superquadric::IOTest(const Vector3d &point) {
     // Transforms the point from world space to body coordinates
@@ -26,34 +27,37 @@ bool Superquadric::IOTest(const Vector3d &point) {
      * Notice the 1st object transform applied is the most right in the matrix multiplication.
      * That's what's happening here. */
     Matrix4d worldToBodySpace = Matrix4d::Identity();
-    for (int i = 0; i < transforms.size(); i++) {
+    for (size_t i = 0; i < transforms.size(); i++) {
         Matrix4d transform = transforms[i]->GetMatrix();
         worldToBodySpace = worldToBodySpace * transform.inverse();
     }
-    Vector4d body_point = worldToBodySpace * Vector4d(point, 1.0);
+    Vector4d vec_point(point[0], point[1], point[2], 1.0);
+    Vector4d body_point = worldToBodySpace * vec_point;
 
     // Compute Superquadric inside-outside function using transformed body coordinate
     double x = body_point[0];
     double y = body_point[1];
     double z = body_point[2];
-    double in_out = -1.0 + pow(z*z, 1.0/exp1) + pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0) , exp0/exp1):
+    double in_out = -1.0 + pow(z*z, 1.0/exp1) + pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0) , exp0/exp1);
     return (in_out < 0);
 }
+
 
 // PART 1.2
 bool Assembly::IOTest(const Vector3d &point) {
     // Transforms the point from world space to assembly coordinates
     // For Explanation, look at Superquadric::IOTest 
     Matrix4d worldToAssemblySpace = Matrix4d::Identity();
-    for (int i = 0; i < transforms.size(); i++) {
+    for (size_t i = 0; i < transforms.size(); i++) {
         Matrix4d transform = transforms[i]->GetMatrix();
         worldToAssemblySpace = worldToAssemblySpace * transform.inverse();
     }
-    Vector3d assembly_point = (worldToAssemblySpace * Vector4d(point, 1.0)).head<3>();
+    Vector4d vec_point(point[0], point[1], point[2], 1.0);
+    Vector3d assembly_point = (worldToAssemblySpace * vec_point).head<3>();
 
     /* Recursively calls IOTest on all children assembly and primitive objects
      * using tranformed assembly coordinate */
-    for (int i = 0; i < children.size(); i++) {
+    for (size_t i = 0; i < children.size(); i++) {
 
         bool inside = children[i]->IOTest(assembly_point);
 
@@ -67,10 +71,14 @@ bool Assembly::IOTest(const Vector3d &point) {
     return false;
 }
 
+
+
 /**
  * Closest Intersection Code
  */
 
+
+// Part 1.3
 pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
     /**
      * PART 1
