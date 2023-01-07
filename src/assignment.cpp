@@ -15,7 +15,14 @@ const int YRES = 500;
 /**
  * IOTest Code
  */
+double inside_outside_func(double x, double y, double z, double exp, double n) {
+    return -1.0 + pow(z*z, 1.0/n) + pow( pow(x*x, 1.0/exp) + pow(y*y, 1.0/exp) , exp/n);
+}
 
+static const double CLOSE_ENOUGH_BOUND = 1.0 / 20.0;
+bool close_enough(double x) {
+    return (abs(x) < CLOSE_ENOUGH_BOUND);
+}
 
 // PART 1.1
 bool Superquadric::IOTest(const Vector3d &point) {
@@ -30,11 +37,7 @@ bool Superquadric::IOTest(const Vector3d &point) {
     Vector4d body_point = getInverseTransformMatrix() * vec_point;
 
     // Compute Superquadric inside-outside function using transformed body coordinate
-    double x = body_point[0];
-    double y = body_point[1];
-    double z = body_point[2];
-    double in_out = -1.0 + pow(z*z, 1.0/exp1) + pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0) , exp0/exp1);
-    return (in_out < 0);
+    return (inside_outside_func(body_point[0], body_point[1], body_point[2], exp0, exp1) < 0);
 }
 
 
@@ -69,27 +72,98 @@ bool Assembly::IOTest(const Vector3d &point) {
 
 // Part 1.3
 pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
-    /**
-     * PART 1
-     * TODO: Implement a ray-superquadric intersection using Newton's method.
-     *       Make sure to apply any transformations to the superquadric before
-     *       performing Newton's method.
-     */
+    // Initialize the return pair to no intersection
     pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
+
+    // Transform ray = a * t + b parameters to body coordinates
+    Matrix4d worldToBodySpace = getInverseTransformMatrix();
+    Vector4d vec_origin(ray.origin[0], ray.origin[1], ray.origin[2], 1.0);
+    Vector4d vec_direction(ray.direction[0], ray.direction[1], ray.direction[2], 1.0);
+    Vector3d vec_a = (worldToBodySpace * vec_origin).head<3>();
+    Vector3d vec_b = (worldToBodySpace * vec_direction).head<3>();
+
+    // Calculates initial value of t
+    double a = vec_a.dot(vec_a);
+    double b = 2.0 * vec_a.dot(vec_b);
+    double c = vec_b.dot(vec_b) - 3.0;
+    double discriminant = b*b - 4.0*a*c;
+    // No collision: if discriminant is negative, solutions for t are imaginary
+    if (discriminant < 0) {
+        return closest;
+    }
+    double t_1 = (-b - sign(b) * sqrt(discriminant)) / (2.0* a);
+    double t_2 = (2.0 * c) / (-b-sign(b) * sqrt(discriminant));
+    // No collision: if both t are negative, the obj is behing the camera
+    if (t_1 < 0 && t_2 < 0) {
+        return closest;
+    }
+    double t_pos, t_neg;
+    if (b < 0) {
+        t_positive = t_1;
+        t_negative = t_2;
+    } else {
+        t_positive = t_2;
+        t_negative = t_1;
+    }
+    double t;
+    if (t_negative >= 0) {
+        t = t_negative;
+    } else {
+        t = t_positive;
+    }
+
+    // Iteratively traces the ray, finding point of intersection if it exists
+    do {
+        // Note: the ray equation gives us our location at t
+        Vector3d loc = vec_a * t + vec_b;
+
+        // Returns an intersection if io function is approx 0 (means we're on surface of obj)
+        double io_value = inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1);
+        if (close_enough(io_value)) {
+            closest.first = t;
+            closest.second.location = loc;
+            closest.second.obj = this;
+        }
+
+        // Stopping Condition: if the derivative isn't negative, we've missed the obj
+        double io_derivative = vec_a.dot(gradient_inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1));
+        if (io_derivative >= 0) {
+            break;
+        }
+
+        // Updates t using Newton's Method (first-order Taylor Series approximation)
+        t -= io_value / io_derivative;
+    } while(true);
+
     return closest;
 }
 
+
+// Part 1.4
 pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
-    /**
-     * PART 1
-     * TODO: Implement a ray-assembly intersection by recursively finding
-     *       intersection with the assembly's children. Make sure to apply any
-     *       transformations to the assembly before calling ClosestIntersection
-     *       on the children.
-     */
+    // Initialize the return pair to no intersection
     pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
+
+    // Transform ray to assembly coordinates
+    Ray transformed_ray = Ray();
+    Matrix4d worldToBodySpace = getInverseTransformMatrix();
+    Vector4d vec_origin(ray.origin[0], ray.origin[1], ray.origin[2], 1.0);
+    Vector4d vec_direction(ray.direction[0], ray.direction[1], ray.direction[2], 1.0);
+    transformed_ray.origin = (worldToBodySpace * vec_origin).head<3>();
+    transformed_ray.direction = (worldToBodySpace * vec_direction).head<3>();
+
+    /* Recursively calls closest intersection on all children objs, finding 
+     * the intersection with the smallest non-negative value of t */
+    for (size_t i = 0; i < children.size(); i++) {
+        pair<double, Intersection> collision = children[i]->ClosestIntersection(transformed_ray);
+        if (collision.first < closest.first) {
+            closest = collision;
+        }
+    }
     return closest;
 }
+
+
 
 /**
  * Raytracing Code
