@@ -6,7 +6,7 @@
 class Frustum {
 public:
     double aspect_ratio;
-    double fov;
+    double fov; // in degrees
     double near;
     double far;
 
