@@ -12,17 +12,32 @@ const int MAX_ITERS = 10000;
 const int XRES = 500;
 const int YRES = 500;
 
-/**
- * IOTest Code
- */
+
+// Helper functions
 double inside_outside_func(double x, double y, double z, double exp, double n) {
     return -1.0 + pow(z*z, 1.0/n) + pow( pow(x*x, 1.0/exp) + pow(y*y, 1.0/exp) , exp/n);
+}
+
+Vector3d gradient_inside_outside_func(double x, double y, double z, double exp, double n) {
+    double derivative_x = 2.0 * x * pow(x*x, 1.0/exp-1.0) * pow( pow(x*x, 1.0/exp) + pow(y*y, 1.0/exp), exp/n-1.0);
+    double derivative_y = 2.0 * y * pow(y*y, 1.0/exp-1.0) * pow( pow(x*x, 1.0/exp) + pow(y*y, 1.0/exp), exp/n-1.0);
+    double derivative_z = 2.0 * z * pow(z*z, 1.0/n-1.0);
+    return (1.0 / n) * Vector3d(derivative_x, derivative_y, derivative_z);
 }
 
 static const double CLOSE_ENOUGH_BOUND = 1.0 / 20.0;
 bool close_enough(double x) {
     return (abs(x) < CLOSE_ENOUGH_BOUND);
 }
+
+int sign(double x) {
+    return (x < 0) ? -1 : 1;
+}
+
+/**
+ * IOTest Code
+ */
+
 
 // PART 1.1
 bool Superquadric::IOTest(const Vector3d &point) {
@@ -76,11 +91,17 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
     pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
 
     // Transform ray = a * t + b parameters to body coordinates
-    Matrix4d worldToBodySpace = getInverseTransformMatrix();
+    Ray transformed_ray = ray;
+    transformed_ray.Transform(getInverseTransformMatrix());
+    transformed_ray.Normalize();
+    Vector3d vec_a = transformed_ray.origin;
+    Vector3d vec_b = transformed_ray.direction;
+    /*Matrix4d worldToBodySpace = getInverseTransformMatrix();
     Vector4d vec_origin(ray.origin[0], ray.origin[1], ray.origin[2], 1.0);
     Vector4d vec_direction(ray.direction[0], ray.direction[1], ray.direction[2], 1.0);
     Vector3d vec_a = (worldToBodySpace * vec_origin).head<3>();
     Vector3d vec_b = (worldToBodySpace * vec_direction).head<3>();
+    */ // maybe normalize ray too
 
     // Calculates initial value of t
     double a = vec_a.dot(vec_a);
@@ -92,24 +113,24 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
         return closest;
     }
     double t_1 = (-b - sign(b) * sqrt(discriminant)) / (2.0* a);
-    double t_2 = (2.0 * c) / (-b-sign(b) * sqrt(discriminant));
+    double t_2 = (2.0 * c) / (-b - sign(b) * sqrt(discriminant));
     // No collision: if both t are negative, the obj is behing the camera
     if (t_1 < 0 && t_2 < 0) {
         return closest;
     }
     double t_pos, t_neg;
     if (b < 0) {
-        t_positive = t_1;
-        t_negative = t_2;
+        t_pos = t_1;
+        t_neg = t_2;
     } else {
-        t_positive = t_2;
-        t_negative = t_1;
+        t_pos = t_2;
+        t_neg = t_1;
     }
     double t;
-    if (t_negative >= 0) {
-        t = t_negative;
+    if (t_neg >= 0) {
+        t = t_neg;
     } else {
-        t = t_positive;
+        t = t_pos;
     }
 
     // Iteratively traces the ray, finding point of intersection if it exists
@@ -121,7 +142,7 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
         double io_value = inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1);
         if (close_enough(io_value)) {
             closest.first = t;
-            closest.second.location = loc;
+            closest.second.location = ray;
             closest.second.obj = this;
         }
 
@@ -145,12 +166,9 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
     pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
 
     // Transform ray to assembly coordinates
-    Ray transformed_ray = Ray();
-    Matrix4d worldToBodySpace = getInverseTransformMatrix();
-    Vector4d vec_origin(ray.origin[0], ray.origin[1], ray.origin[2], 1.0);
-    Vector4d vec_direction(ray.direction[0], ray.direction[1], ray.direction[2], 1.0);
-    transformed_ray.origin = (worldToBodySpace * vec_origin).head<3>();
-    transformed_ray.direction = (worldToBodySpace * vec_direction).head<3>();
+    Ray transformed_ray = ray;
+    transformed_ray.Transform(getInverseTransformMatrix());
+    transformed_ray.Normalize();
 
     /* Recursively calls closest intersection on all children objs, finding 
      * the intersection with the smallest non-negative value of t */
