@@ -6,7 +6,7 @@
           "type": "cppdbg",
           "request": "launch",
           "program": "${workspaceFolder}/bin/renderer",
-          "args": ["data/scene_cube1.txt", "1000", "1000", "scenes/robot_arm.yaml"],
+          "args": ["1000", "1000", "scenes/robot_arm.yaml"],
           "stopAtEntry": false,
           "cwd": "${workspaceFolder}",
           "environment": [],

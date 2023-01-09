@@ -210,7 +210,7 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
  */
 
 
-// Computes point lighting calculation for a point in World Space
+// Computes point lighting calculation for a point in World Space if there's a collision
 Vector3f pointLighting(Ray &ray, Vector3d camera_pos, vector<Light> &lights, const Material &mat) {
     /* Converts parameters to Vector3f for calculations */
     Vector3d camera_dir = camera_pos - ray.origin;
@@ -267,13 +267,15 @@ void Scene::Raytrace() {
 
     // Gets basis vectors applying camera translations 
     // NOTEEE: (may have to use transformations not translations - so including rotation)
-    // Matrix4d camera_transform = camera.rotation.GetMatrix() * camera.translate.GetMatrix();
-    Vector3d basis_e1 = (camera.translate.GetMatrix() * Vector4d(0, 0, -1, 1)).head<3>();
-    Vector3d basis_e2 = (camera.translate.GetMatrix() * Vector4d(1, 0, 0, 1)).head<3>();
-    Vector3d basis_e3 = (camera.translate.GetMatrix() * Vector4d(0, 1, 0, 1)).head<3>();
+    Matrix4d camera_transform = camera.translate.GetMatrix() * camera.rotate.GetMatrix();
+    Vector3d basis_e1 = (camera_transform * Vector4d(0, 0, -1, 1)).head<3>().normalized();
+    Vector3d basis_e2 = (camera_transform * Vector4d(1, 0, 0, 1)).head<3>().normalized();
+    Vector3d basis_e3 = (camera_transform * Vector4d(0, 1, 0, 1)).head<3>().normalized();
 
     for (int i = 0; i < XRES; i++) {
         for (int j = 0; j < YRES; j++) {
+            Vector3f pixel_color(1, 1, 1);
+
             // Computes x and y positions of the current pixel
             double x = pixel_width * i - 0.5 * width;
             double y = pixel_height * j - 0.5 * height;
@@ -286,19 +288,15 @@ void Scene::Raytrace() {
             ray.Normalize();
 
             // Finds the closest intersection of our ray
-            pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
-            for (size_t i = 0; i < root_objects.size(); i++) {
-                pair<double, Intersection> collision = root_objects[i]->ClosestIntersection(ray);
-                if (collision.first < closest.first) {
-                    closest = collision;
-                }
-            }
+            pair<double, Intersection> closest = ClosestIntersection(ray);
             
-            // Uses helper method to compute the lighting at this pixel
-            Vector3f pixel_color = pointLighting(closest.second.location, 
-                                                 ray.origin, 
-                                                 lights, 
-                                                 closest.second.obj->GetMaterial());
+            if (closest.first != INFINITY) {
+                // Uses helper method to compute the lighting at this pixel
+                pixel_color = pointLighting(closest.second.location, 
+                                            ray.origin, 
+                                            lights, 
+                                            closest.second.obj->GetMaterial());
+            }
 
             img.SetPixel(i, j, pixel_color);
         }
