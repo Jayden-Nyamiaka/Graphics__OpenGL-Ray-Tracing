@@ -253,6 +253,7 @@ Vector3f pointLighting(Ray &ray, Vector3d camera_pos, vector<Light> &lights, con
 }
 
 
+// Part 2
 void Scene::Raytrace() {
     Image img = Image(XRES, YRES);
     double height = 2 * camera.frustum.near * tan(0.5 * deg2rad(camera.frustum.fov));
