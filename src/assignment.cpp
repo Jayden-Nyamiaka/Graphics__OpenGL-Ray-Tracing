@@ -13,15 +13,38 @@ const size_t XRES = 500;
 const size_t YRES = 500;
 
 
-// Helper functions
-double inside_outside_func(double x, double y, double z, double exp, double n) {
-    return -1.0 + pow(z*z, 1.0/n) + pow( pow(x*x, 1.0/exp) + pow(y*y, 1.0/exp) , exp/n);
+// HELPER FUNCTIONS
+Eigen::Matrix4d Object::getForwardTransformMatrix() {
+    Eigen::Matrix4d forwardTransform = Matrix4d::Identity();
+    for (size_t i = 0; i < transforms.size(); i++) {
+        forwardTransform = transforms[i]->GetMatrix() * forwardTransform;
+    }
+    return forwardTransform;
 }
 
-Vector3d gradient_inside_outside_func(double x, double y, double z, double exp, double n) {
-    double derivative_x = 2.0 * x * pow(x*x, 1.0/exp-1.0) * pow( pow(x*x, 1.0/exp) + pow(y*y, 1.0/exp), exp/n-1.0);
-    double derivative_y = 2.0 * y * pow(y*y, 1.0/exp-1.0) * pow( pow(x*x, 1.0/exp) + pow(y*y, 1.0/exp), exp/n-1.0);
-    double derivative_z = 2.0 * z * pow(z*z, 1.0/n-1.0);
+// Every Object has transforms so this returns the inverse transform matrix for that
+Eigen::Matrix4d Object::getInverseTransformMatrix() {
+    Eigen::Matrix4d inverseTransform = Matrix4d::Identity();
+    for (size_t i = 0; i < transforms.size(); i++) {
+        inverseTransform *= transforms[i]->GetMatrix().inverse();
+    }
+    return inverseTransform;
+}
+
+double Superquadric::IOFunction(Vector3d pos) {
+    double x = pos[0];
+    double y = pos[1];
+    double z = pos[2];
+    return -1.0 + pow(z*z, 1.0/exp1) + pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0) , exp0/exp1);
+}
+
+Vector3d Superquadric::IOGradient(Vector3d pos) {
+    double x = pos[0];
+    double y = pos[1];
+    double z = pos[2];
+    double derivative_x = 2.0 * x * pow(x*x, 1.0/exp0-1.0) * pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0), exp0/exp1-1.0);
+    double derivative_y = 2.0 * y * pow(y*y, 1.0/exp0-1.0) * pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0), exp0/exp1-1.0);
+    double derivative_z = 2.0 * z * pow(z*z, 1.0/exp1-1.0);
     return (1.0 / n) * Vector3d(derivative_x, derivative_y, derivative_z);
 }
 
@@ -59,7 +82,7 @@ bool Superquadric::IOTest(const Vector3d &point) {
     Vector4d body_point = getInverseTransformMatrix() * vec_point;
 
     // Compute Superquadric inside-outside function using transformed body coordinate
-    return (inside_outside_func(body_point[0], body_point[1], body_point[2], exp0, exp1) < 0);
+    return (IOFunction(body_point) < 0);
 }
 
 
@@ -139,7 +162,7 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
         Vector3d loc = transformed_ray.At(t);
 
         // Returns an intersection if io function is approx 0 (means we're on surface of obj)
-        double io_value = inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1);
+        double io_value = IOFunction(loc);
         if (close_enough(io_value)) {
             // Updates closest (lowest positive) value of t so far and sets returning obj
             closest.first = t;
@@ -148,7 +171,7 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
             // Sets the returning ray's location to the point of intersection and 
             // its direction to the surface normal on the Superquadric at the point of intersection
             closest.second.location.origin = loc;
-            closest.second.location.direction = gradient_inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1);
+            closest.second.location.direction = IOGradient(loc);
 
             // Transforms the returning ray from Body Coordinates to Assembly / World Space
             closest.second.location.Transform(getForwardTransformMatrix());
@@ -157,7 +180,7 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
         }
 
         // Stopping Condition: if the derivative isn't negative, we've missed the obj
-        double io_derivative = vec_a.dot(gradient_inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1));
+        double io_derivative = vec_a.dot(IOGradient(loc));
         if (io_derivative >= 0) {
             break;
         }
@@ -236,11 +259,11 @@ Vector3f pointLighting(Ray &ray,
         bool obstructed = false;
         do {
             // Note: the ray equation gives us our location at t
-            Vector3d loc = light_ray.At(t);
+            Vector3d current_location = light_ray.At(t);
 
             // Marks light obstructed and breaks out if we're inside any other object
             for (size_t obj_idx; obj_idx < root_objects.size(); obj_idx++)c{
-                if (root_objects[obj_idx]->IOTest(loc)) {
+                if (root_objects[obj_idx]->IOTest(current_location)) {
                     obstructed = true;
                     break;
                 }
@@ -251,10 +274,12 @@ Vector3f pointLighting(Ray &ray,
                 break;
             }
 
-            // Updates t using Newton's Method (first-order Taylor Series approximation)
-            double io_value = inside_outside_func(loc[0], loc[1], loc[2], obj->exp0, obj->exp1);
-            double io_derivative = light_ray.direction.dot(gradient_inside_outside_func(loc[0], loc[1], loc[2], obj->exp0, obj->exp1));
+            /* Updates t using Newton's Method (first-order Taylor Series approximation)
+             * based on the inside outside function of the object we're trying to color */
+            double io_value = obj->IOFunction(current_location);
+            double io_derivative = light_ray.direction.dot(obj->IOFunction(current_location));
             t -= io_value / io_derivative;
+            
         } while (t < 1.0 - close_enough_bound);
 
         // If the light is obstructed, skip to the next point light
