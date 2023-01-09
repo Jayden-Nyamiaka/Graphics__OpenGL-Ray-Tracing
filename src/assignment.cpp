@@ -93,6 +93,7 @@ bool Assembly::IOTest(const Vector3d &point) {
 
 
 // Part 1.3
+// Note: Returned ray is not normalized
 pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
     // Initialize the return pair to no intersection
     pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
@@ -148,11 +149,9 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
             // its direction to the surface normal on the Superquadric at the point of intersection
             closest.second.location.origin = loc;
             closest.second.location.direction = gradient_inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1);
-            closest.second.location.Normalize();
 
             // Transforms the returning ray from Body Coordinates to Assembly / World Space
             closest.second.location.Transform(getForwardTransformMatrix());
-            closest.second.location.Normalize();
 
             return closest;
         }
@@ -172,6 +171,7 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
 
 
 // Part 1.4
+// Note: Returned ray is normalized
 pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
     // Initialize the return pair to no intersection
     pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
@@ -190,6 +190,8 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
     
     // Transforms the closest returning ray from Assembly Space to World Space
     closest.second.location.Transform(getForwardTransformMatrix());
+
+    // Normalized final ray
     closest.second.location.Normalize();
 
     return closest;
@@ -266,7 +268,7 @@ void Scene::Raytrace() {
 
     for (int i = 0; i < XRES; i++) {
         for (int j = 0; j < YRES; j++) {
-            Vector3f pixel_color(1, 1, 1);
+            Vector3f pixel_color = Vector3f::Zero();
 
             // Computes x and y positions of the current pixel
             double x = pixel_width * i - 0.5 * width;
