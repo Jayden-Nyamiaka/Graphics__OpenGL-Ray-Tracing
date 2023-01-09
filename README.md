@@ -64,6 +64,11 @@ put function signatures
 getForwardTransformMatrix
 getInverseTransformMatrix
 
-- need to do 1/20 of a PIXEL for close enough bound
+- Added methods to Superquadric:
+// Helpful functions to compute the inside-outside function
+double IOFunction(Vector3d pos);  
+Vector3d IOGradient(Vector3d pos);
 
+- need to do 1/20 of a PIXEL for close enough bound
+- mention setting this manually on first run of RayTrace bc that comes before anything that needs it and pixel calcultions are done there
 -remember to paste in pictures
