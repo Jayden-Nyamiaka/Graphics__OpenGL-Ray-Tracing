@@ -99,13 +99,6 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
 
     // Transform ray = a * t + b parameters to body coordinates
     Ray transformed_ray = ray.Transformed(getInverseTransformMatrix());
-    transformed_ray.Normalize();
-    /*Matrix4d worldToBodySpace = getInverseTransformMatrix();
-    Vector4d vec_origin(ray.origin[0], ray.origin[1], ray.origin[2], 1.0);
-    Vector4d vec_direction(ray.direction[0], ray.direction[1], ray.direction[2], 1.0);
-    Vector3d vec_a = (worldToBodySpace * vec_origin).head<3>();
-    Vector3d vec_b = (worldToBodySpace * vec_direction).head<3>();
-    */ // maybe dont normalize ray too
 
     // Calculates initial value of t
     Vector3d vec_a = transformed_ray.origin;
@@ -185,7 +178,6 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
 
     // Transform ray to assembly coordinates
     Ray transformed_ray = ray.Transformed(getInverseTransformMatrix());
-    transformed_ray.Normalize();
 
     /* Recursively calls closest intersection on all children objs, finding 
      * the intersection with the smallest non-negative value of t */
@@ -267,7 +259,7 @@ void Scene::Raytrace() {
 
     // Gets basis vectors applying camera translations 
     // NOTEEE: (may have to use transformations not translations - so including rotation)
-    Matrix4d camera_transform = camera.translate.GetMatrix() * camera.rotate.GetMatrix();
+    Matrix4d camera_transform = camera.rotate.GetMatrix().inverse();
     Vector3d basis_e1 = (camera_transform * Vector4d(0, 0, -1, 1)).head<3>().normalized();
     Vector3d basis_e2 = (camera_transform * Vector4d(1, 0, 0, 1)).head<3>().normalized();
     Vector3d basis_e3 = (camera_transform * Vector4d(0, 1, 0, 1)).head<3>().normalized();
@@ -285,8 +277,7 @@ void Scene::Raytrace() {
             // Note: This is the position of the camera in World Space
             ray.origin = -1.0 * camera.translate.GetDelta();
             ray.direction = camera.frustum.near * basis_e1 + x * basis_e2 + y * basis_e3;
-            ray.Normalize();
-
+    
             // Finds the closest intersection of our ray
             pair<double, Intersection> closest = ClosestIntersection(ray);
             
