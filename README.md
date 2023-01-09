@@ -56,3 +56,14 @@ A subclass of `Object` that represents a combination of several sub-objects (tha
 ### `Scene`
 
 A class that represents a loaded scene. You should pay attention to the member variables `camera` and `lights`, and the `ClosestIntersection` function, which returns the first intersection between the given ray and any of the objects in the scene (and relies on your implementation of `ClosestIntersection` on the `Assembly` and `Superquadric` classes).
+
+
+
+- Added methods to object class that utlilizes transforms to get the transform matrices
+put function signatures 
+getForwardTransformMatrix
+getInverseTransformMatrix
+
+- need to do 1/20 of a PIXEL for close enough bound
+
+-remember to paste in pictures

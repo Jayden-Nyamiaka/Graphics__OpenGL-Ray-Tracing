@@ -25,14 +25,21 @@ Vector3d gradient_inside_outside_func(double x, double y, double z, double exp, 
     return (1.0 / n) * Vector3d(derivative_x, derivative_y, derivative_z);
 }
 
-static const double CLOSE_ENOUGH_BOUND = 1.0 / 20.0;
+static double close_enough_bound = 1.0 / 20.0;
 bool close_enough(double x) {
-    return (abs(x) < CLOSE_ENOUGH_BOUND);
+    return (abs(x) < close_enough_bound);
 }
 
 int sign(double x) {
     return (x < 0) ? -1 : 1;
 }
+
+float deg2rad(float angle)
+{
+    return angle * M_PI / 180.0;
+}
+
+
 
 /**
  * IOTest Code
@@ -91,19 +98,18 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
     pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
 
     // Transform ray = a * t + b parameters to body coordinates
-    Ray transformed_ray = ray;
-    transformed_ray.Transform(getInverseTransformMatrix());
+    Ray transformed_ray = ray.Transformed(getInverseTransformMatrix());
     transformed_ray.Normalize();
-    Vector3d vec_a = transformed_ray.origin;
-    Vector3d vec_b = transformed_ray.direction;
     /*Matrix4d worldToBodySpace = getInverseTransformMatrix();
     Vector4d vec_origin(ray.origin[0], ray.origin[1], ray.origin[2], 1.0);
     Vector4d vec_direction(ray.direction[0], ray.direction[1], ray.direction[2], 1.0);
     Vector3d vec_a = (worldToBodySpace * vec_origin).head<3>();
     Vector3d vec_b = (worldToBodySpace * vec_direction).head<3>();
-    */ // maybe normalize ray too
+    */ // maybe dont normalize ray too
 
     // Calculates initial value of t
+    Vector3d vec_a = transformed_ray.origin;
+    Vector3d vec_b = transformed_ray.direction;
     double a = vec_a.dot(vec_a);
     double b = 2.0 * vec_a.dot(vec_b);
     double c = vec_b.dot(vec_b) - 3.0;
@@ -136,14 +142,26 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
     // Iteratively traces the ray, finding point of intersection if it exists
     do {
         // Note: the ray equation gives us our location at t
-        Vector3d loc = vec_a * t + vec_b;
+        Vector3d loc = transformed_ray.At(t);
 
         // Returns an intersection if io function is approx 0 (means we're on surface of obj)
         double io_value = inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1);
         if (close_enough(io_value)) {
+            // Updates closest (lowest positive) value of t so far and sets returning obj
             closest.first = t;
-            closest.second.location = ray;
             closest.second.obj = this;
+
+            // Sets the returning ray's location to the point of intersection and 
+            // its direction to the surface normal on the Superquadric at the point of intersection
+            closest.second.location.origin = loc;
+            closest.second.location.direction = gradient_inside_outside_func(loc[0], loc[1], loc[2], exp0, exp1);
+            closest.second.location.Normalize();
+
+            // Transforms the returning ray from Body Coordinates to Assembly / World Space
+            closest.second.location.Transform(getForwardTransformMatrix());
+            closest.second.location.Normalize();
+
+            return closest;
         }
 
         // Stopping Condition: if the derivative isn't negative, we've missed the obj
@@ -166,8 +184,7 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
     pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
 
     // Transform ray to assembly coordinates
-    Ray transformed_ray = ray;
-    transformed_ray.Transform(getInverseTransformMatrix());
+    Ray transformed_ray = ray.Transformed(getInverseTransformMatrix());
     transformed_ray.Normalize();
 
     /* Recursively calls closest intersection on all children objs, finding 
@@ -178,6 +195,11 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
             closest = collision;
         }
     }
+    
+    // Transforms the closest returning ray from Assembly Space to World Space
+    closest.second.location.Transform(getForwardTransformMatrix());
+    closest.second.location.Normalize();
+
     return closest;
 }
 
@@ -187,18 +209,94 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
  * Raytracing Code
  */
 
+
+// Computes point lighting calculation for a point in World Space
+Vector3f pointLighting(Ray &ray, Vector3d camera_pos, vector<Light> &lights, Material &mat) {
+    /* Converts parameters to Vector3f for calculations */
+    Vector3d camera_dir = camera_pos - ray.origin;
+    camera_dir.normalize();
+
+    /* Defines Color Component Sums for Diffuse & Specular Light Reflection */
+    Vector3f diffuse_total = Vector3f::Zero();
+    Vector3f specular_total = Vector3f::Zero();
+
+    for (size_t i = 0; i < lights.size(); i++) {
+        Vector3f light_color = lights[i].color.ToVector();
+        Vector3d light_pos = lights[i].position.head<3>();
+        Vector3d light_dir = light_pos - ray.origin;
+        light_dir.normalize();
+
+        // Computes Attenuation Factor
+        double x_dif = (ray.origin[0] - light_pos[0]);
+        double y_dif = (ray.origin[1] - light_pos[1]);
+        double z_dif = (ray.origin[2] - light_pos[2]);
+        double dist_to_light_squared = x_dif*x_dif + y_dif*y_dif + z_dif*z_dif;
+        double attenuation_factor = 
+            1.0 / (1.0 + lights[i].attenuation * dist_to_light_squared);
+
+        // Updates Diffuse Total with Diffuse Reflection for this point light
+        diffuse_total += light_color * max(0.0, attenuation_factor * ray.direction.dot(light_dir));
+
+        // Updates Specular Total with Specular Reflection for this point light
+        Vector3d sum_dir = camera_dir + light_dir;
+        sum_dir.normalize();
+        double specular_factor = pow(max(0.0, ray.direction.dot(sum_dir)), 1.0 * mat.shininess);
+        specular_total += light_color * (attenuation_factor * specularFactor);
+    }
+
+    // Sums Ambient, Diffuse, & Specular keeping rgb values within [0, 1]
+    Vector3f color = (mat.ambient + 
+                      diffuse_total.cwiseProduct(mat.diffuse) + 
+                      specular_total.cwiseProduct(mat.specular)
+                     ).cwiseMin(1.0f);
+    return color;
+}
+
+
 void Scene::Raytrace() {
     Image img = Image(XRES, YRES);
+    double height = 2 * camera.frustum.near * tan(0.5 * deg2rad(camera.frustum.fov));
+    double width = camera.frustum.aspect_ratio * height;
+
+    double pixel_height = height / YRES;
+    double pixel_width = width / XRES;
+
+    // Sets close_enough_bound based on the shortest length of a pixel
+    close_enough_bound = (1.0 / 20.0) * (pixel_height < pixel_width ? pixel_height : pixel_width);
+
+    // Gets basis vectors applying camera translations 
+    // NOTEEE: (may have to use transformations not translations - so including rotation)
+    // Matrix4d camera_transform = camera.rotation.GetMatrix() * camera.translate.GetMatrix();
+    Vector3d basis_e1 = (camera.translate.GetMatrix() * Vector3d(0, 0, -1, 1)).head<3>();
+    Vector3d basis_e2 = (camera.translate.GetMatrix() * Vector3d(1, 0, 0, 1)).head<3>();
+    Vector3d basis_e3 = (camera.translate.GetMatrix() * Vector3d(0, 1, 0, 1)).head<3>();
 
     for (int i = 0; i < XRES; i++) {
         for (int j = 0; j < YRES; j++) {
-            /**
-             * PART 2
-             * TODO: Implement raytracing using the code from the first part
-             *       of the assignment. Set the correct color for each pixel
-             *       here.
-             */
-            img.SetPixel(i, j, Vector3f::Ones());
+            // Computes x and y positions of the current pixel
+            double x = pixel_width * i - 0.5 * width;
+            double y = pixel_height * j - 0.5 * height;
+
+            // Computes the ray to send out at the current pixel
+            Ray ray = Ray();
+            // Note: This is the position of the camera in World Space
+            ray.origin = -1.0 * camera.translate.GetDelta();
+            ray.direction = camera.frustum.near * basis_e1 + x * basis_e2 + y * basis_e3;
+            ray.Normalize();
+
+            // Finds the closest intersection of our ray
+            pair<double, Intersection> closest = make_pair(INFINITY, Intersection());
+            for (size_t i = 0; i < root_objects.size(); i++) {
+                pair<double, Intersection> collision = root_objects[i]->ClosestIntersection(ray);
+                if (collision.first < closest.first) {
+                    closest = collision;
+                }
+            }
+            
+            // Uses helper method to compute the lighting at this pixel
+            Vector3f pixel_color = pointLighting(closest.second.location, ray.origin, lights, closest.second.obj->mat);
+
+            img.SetPixel(i, j, pixel_color);
         }
     }
 
