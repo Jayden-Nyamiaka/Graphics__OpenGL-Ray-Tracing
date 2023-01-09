@@ -8,9 +8,9 @@
 using namespace Eigen;
 using namespace std;
 
-const int MAX_ITERS = 10000;
-const int XRES = 500;
-const int YRES = 500;
+const size_t MAX_ITERS = 10000;
+const size_t XRES = 500;
+const size_t YRES = 500;
 
 
 // Helper functions
@@ -205,20 +205,69 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
 
 
 // Computes point lighting calculation for a point in World Space if there's a collision
-Vector3f pointLighting(Ray &ray, Vector3d camera_pos, vector<Light> &lights, const Material &mat) {
-    /* Converts parameters to Vector3f for calculations */
+Vector3f pointLighting(Ray &ray, 
+                       Vector3d camera_pos, 
+                       vector<Light> &lights, 
+                       Superquadric *obj, 
+                       vector<shared_ptr<Object>> root_objects) {
+    // Gets camera direction in World Space
     Vector3d camera_dir = camera_pos - ray.origin;
     camera_dir.normalize();
 
-    /* Defines Color Component Sums for Diffuse & Specular Light Reflection */
+    // Gets the material properties for our colliding Superquadric
+    const Material &mat = obj->GetMaterial();
+
+    // Defines Color Component Sums for Diffuse & Specular Light Reflection
     Vector3f diffuse_total = Vector3f::Zero();
     Vector3f specular_total = Vector3f::Zero();
 
-    for (size_t i = 0; i < lights.size(); i++) {
-        Vector3f light_color = lights[i].color.ToVector();
-        Vector3d light_pos = lights[i].position.head<3>();
+    // Does the Shadowing and Point Lighting Calculation for every point light
+    for (size_t light_idx = 0; light_idx < lights.size(); light_idx++) {
+        Vector3d light_pos = lights[light_idx].position.head<3>();
+        
+
+        /* Shadowing: Tests if light ray is obstructed by another Object and 
+         * only does lighting computations for this light if there's no obstruction */
+        Ray light_ray = Ray();
+        light_ray.origin = light_pos;
+        light_ray.direction = ray_origin - light_pos;
+
+        double t = 0;
+        bool obstructed = false;
+        do {
+            // Note: the ray equation gives us our location at t
+            Vector3d loc = light_ray.At(t);
+
+            // Marks light obstructed and breaks out if we're inside any other object
+            for (size_t obj_idx; obj_idx < root_objects.size(); obj_idx++)c{
+                if (root_objects[obj_idx]->IOTest(loc)) {
+                    obstructed = true;
+                    break;
+                }
+
+            }
+
+            if (obstructed) {
+                break;
+            }
+
+            // Updates t using Newton's Method (first-order Taylor Series approximation)
+            double io_value = inside_outside_func(loc[0], loc[1], loc[2], obj->exp0, obj->exp1);
+            double io_derivative = light_ray.direction.dot(gradient_inside_outside_func(loc[0], loc[1], loc[2], obj->exp0, obj->exp1));
+            t -= io_value / io_derivative;
+        } while (t < 1.0 - close_enough_bound);
+
+        // If the light is obstructed, skip to the next point light
+        if (obstructed) {
+            continue;
+        }
+
+
+        // Point Lighting Computation
+        Vector3f light_color = lights[light_idx].color.ToVector();
         Vector3d light_dir = light_pos - ray.origin;
         light_dir.normalize();
+        
 
         // Computes Attenuation Factor
         double x_dif = (ray.origin[0] - light_pos[0]);
@@ -226,7 +275,7 @@ Vector3f pointLighting(Ray &ray, Vector3d camera_pos, vector<Light> &lights, con
         double z_dif = (ray.origin[2] - light_pos[2]);
         double dist_to_light_squared = x_dif*x_dif + y_dif*y_dif + z_dif*z_dif;
         double attenuation_factor = 
-            1.0 / (1.0 + lights[i].attenuation * dist_to_light_squared);
+            1.0 / (1.0 + lights[light_idx].attenuation * dist_to_light_squared);
 
         // Updates Diffuse Total with Diffuse Reflection for this point light
         diffuse_total += light_color * max(0.0, attenuation_factor * ray.direction.dot(light_dir));
@@ -266,8 +315,8 @@ void Scene::Raytrace() {
     Vector3d basis_e2 = (camera_transform * Vector4d(1, 0, 0, 1)).head<3>().normalized();
     Vector3d basis_e3 = (camera_transform * Vector4d(0, 1, 0, 1)).head<3>().normalized();
 
-    for (int i = 0; i < XRES; i++) {
-        for (int j = 0; j < YRES; j++) {
+    for (size_t i = 0; i < XRES; i++) {
+        for (size_t j = 0; j < YRES; j++) {
             Vector3f pixel_color = Vector3f::Zero();
 
             // Computes x and y positions of the current pixel
@@ -288,7 +337,8 @@ void Scene::Raytrace() {
                 pixel_color = pointLighting(closest.second.location, 
                                             ray.origin, 
                                             lights, 
-                                            closest.second.obj->GetMaterial());
+                                            closest.second.obj,
+                                            root_objects);
             }
 
             img.SetPixel(i, j, pixel_color);
