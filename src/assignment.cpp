@@ -211,7 +211,7 @@ pair<double, Intersection> Assembly::ClosestIntersection(const Ray &ray) {
 
 
 // Computes point lighting calculation for a point in World Space
-Vector3f pointLighting(Ray &ray, Vector3d camera_pos, vector<Light> &lights, Material &mat) {
+Vector3f pointLighting(Ray &ray, Vector3d camera_pos, vector<Light> &lights, const Material &mat) {
     /* Converts parameters to Vector3f for calculations */
     Vector3d camera_dir = camera_pos - ray.origin;
     camera_dir.normalize();
@@ -241,13 +241,13 @@ Vector3f pointLighting(Ray &ray, Vector3d camera_pos, vector<Light> &lights, Mat
         Vector3d sum_dir = camera_dir + light_dir;
         sum_dir.normalize();
         double specular_factor = pow(max(0.0, ray.direction.dot(sum_dir)), 1.0 * mat.shininess);
-        specular_total += light_color * (attenuation_factor * specularFactor);
+        specular_total += light_color * (attenuation_factor * specular_factor);
     }
 
     // Sums Ambient, Diffuse, & Specular keeping rgb values within [0, 1]
-    Vector3f color = (mat.ambient + 
-                      diffuse_total.cwiseProduct(mat.diffuse) + 
-                      specular_total.cwiseProduct(mat.specular)
+    Vector3f color = (mat.ambient.ToVector() + 
+                      diffuse_total.cwiseProduct(mat.diffuse.ToVector()) + 
+                      specular_total.cwiseProduct(mat.specular.ToVector())
                      ).cwiseMin(1.0f);
     return color;
 }
@@ -267,9 +267,9 @@ void Scene::Raytrace() {
     // Gets basis vectors applying camera translations 
     // NOTEEE: (may have to use transformations not translations - so including rotation)
     // Matrix4d camera_transform = camera.rotation.GetMatrix() * camera.translate.GetMatrix();
-    Vector3d basis_e1 = (camera.translate.GetMatrix() * Vector3d(0, 0, -1, 1)).head<3>();
-    Vector3d basis_e2 = (camera.translate.GetMatrix() * Vector3d(1, 0, 0, 1)).head<3>();
-    Vector3d basis_e3 = (camera.translate.GetMatrix() * Vector3d(0, 1, 0, 1)).head<3>();
+    Vector3d basis_e1 = (camera.translate.GetMatrix() * Vector4d(0, 0, -1, 1)).head<3>();
+    Vector3d basis_e2 = (camera.translate.GetMatrix() * Vector4d(1, 0, 0, 1)).head<3>();
+    Vector3d basis_e3 = (camera.translate.GetMatrix() * Vector4d(0, 1, 0, 1)).head<3>();
 
     for (int i = 0; i < XRES; i++) {
         for (int j = 0; j < YRES; j++) {
@@ -294,7 +294,10 @@ void Scene::Raytrace() {
             }
             
             // Uses helper method to compute the lighting at this pixel
-            Vector3f pixel_color = pointLighting(closest.second.location, ray.origin, lights, closest.second.obj->mat);
+            Vector3f pixel_color = pointLighting(closest.second.location, 
+                                                 ray.origin, 
+                                                 lights, 
+                                                 closest.second.obj->GetMaterial());
 
             img.SetPixel(i, j, pixel_color);
         }
