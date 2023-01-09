@@ -31,21 +31,21 @@ Eigen::Matrix4d Object::getInverseTransformMatrix() {
     return inverseTransform;
 }
 
-double Superquadric::IOFunction(Vector3d pos) {
+double Superquadric::IOFunction(Vector3d &pos) {
     double x = pos[0];
     double y = pos[1];
     double z = pos[2];
     return -1.0 + pow(z*z, 1.0/exp1) + pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0) , exp0/exp1);
 }
 
-Vector3d Superquadric::IOGradient(Vector3d pos) {
+Vector3d Superquadric::IOGradient(Vector3d &pos) {
     double x = pos[0];
     double y = pos[1];
     double z = pos[2];
     double derivative_x = 2.0 * x * pow(x*x, 1.0/exp0-1.0) * pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0), exp0/exp1-1.0);
     double derivative_y = 2.0 * y * pow(y*y, 1.0/exp0-1.0) * pow( pow(x*x, 1.0/exp0) + pow(y*y, 1.0/exp0), exp0/exp1-1.0);
     double derivative_z = 2.0 * z * pow(z*z, 1.0/exp1-1.0);
-    return (1.0 / n) * Vector3d(derivative_x, derivative_y, derivative_z);
+    return (1.0 / exp1) * Vector3d(derivative_x, derivative_y, derivative_z);
 }
 
 static double close_enough_bound = 1.0 / 20.0;
@@ -79,7 +79,7 @@ bool Superquadric::IOTest(const Vector3d &point) {
      * Notice the 1st object transform applied is the most right in the matrix multiplication.
      * That's what's happening here. */
     Vector4d vec_point(point[0], point[1], point[2], 1.0);
-    Vector4d body_point = getInverseTransformMatrix() * vec_point;
+    Vector3d body_point = (getInverseTransformMatrix() * vec_point).head<3>();
 
     // Compute Superquadric inside-outside function using transformed body coordinate
     return (IOFunction(body_point) < 0);
@@ -253,7 +253,7 @@ Vector3f pointLighting(Ray &ray,
          * only does lighting computations for this light if there's no obstruction */
         Ray light_ray = Ray();
         light_ray.origin = light_pos;
-        light_ray.direction = ray_origin - light_pos;
+        light_ray.direction = ray.origin - light_pos;
 
         double t = 0;
         bool obstructed = false;
@@ -262,7 +262,7 @@ Vector3f pointLighting(Ray &ray,
             Vector3d current_location = light_ray.At(t);
 
             // Marks light obstructed and breaks out if we're inside any other object
-            for (size_t obj_idx; obj_idx < root_objects.size(); obj_idx++)c{
+            for (size_t obj_idx = 0; obj_idx < root_objects.size(); obj_idx++) {
                 if (root_objects[obj_idx]->IOTest(current_location)) {
                     obstructed = true;
                     break;
@@ -277,7 +277,7 @@ Vector3f pointLighting(Ray &ray,
             /* Updates t using Newton's Method (first-order Taylor Series approximation)
              * based on the inside outside function of the object we're trying to color */
             double io_value = obj->IOFunction(current_location);
-            double io_derivative = light_ray.direction.dot(obj->IOFunction(current_location));
+            double io_derivative = light_ray.direction.dot(obj->IOGradient(current_location));
             t -= io_value / io_derivative;
             
         } while (t < 1.0 - close_enough_bound);

@@ -79,8 +79,8 @@ public:
     const Material& GetMaterial() const;
 
     // Helpful functions to compute the inside-outside function
-    double IOFunction(Vector3d pos);  
-    Vector3d IOGradient(Vector3d pos);
+    double IOFunction(Eigen::Vector3d &pos);  
+    Eigen::Vector3d IOGradient(Eigen::Vector3d &pos);
 
     bool IOTest(const Eigen::Vector3d &point);
     std::pair<double, Intersection> ClosestIntersection(const Ray &ray);
