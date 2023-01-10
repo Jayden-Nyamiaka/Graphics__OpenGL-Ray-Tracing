@@ -48,9 +48,9 @@ Vector3d Superquadric::IOGradient(Vector3d &pos) {
     return (1.0 / exp1) * Vector3d(derivative_x, derivative_y, derivative_z);
 }
 
-static double close_enough_bound = 1.0 / 20.0;
+static const double CLOSE_ENOUGH_BOUND = 0.00001;
 bool close_enough(double x) {
-    return (abs(x) < close_enough_bound);
+    return (abs(x) < CLOSE_ENOUGH_BOUND);
 }
 
 int sign(double x) {
@@ -125,8 +125,8 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
     Ray transformed_ray = ray.Transformed(getInverseTransformMatrix());
 
     // Calculates initial value of t
-    Vector3d vec_a = transformed_ray.origin;
-    Vector3d vec_b = transformed_ray.direction;
+    Vector3d vec_a = transformed_ray.direction;
+    Vector3d vec_b = transformed_ray.origin;
     double a = vec_a.dot(vec_a);
     double b = 2.0 * vec_a.dot(vec_b);
     double c = vec_b.dot(vec_b) - 3.0;
@@ -174,7 +174,7 @@ pair<double, Intersection> Superquadric::ClosestIntersection(const Ray &ray) {
             closest.second.location.direction = IOGradient(loc);
 
             // Transforms the returning ray from Body Coordinates to Assembly / World Space
-            closest.second.location.Transform(getForwardTransformMatrix());
+            closest.second.location.Transform(getForwardTransformMatrix().inverse().transpose());
 
             return closest;
         }
@@ -232,13 +232,15 @@ Vector3f pointLighting(Ray &ray,
                        Vector3d camera_pos, 
                        vector<Light> &lights, 
                        Superquadric *obj, 
-                       vector<shared_ptr<Object>> root_objects) {
+                       vector<shared_ptr<Object>> root_objects
+                       Scene *scene) {
     // Gets camera direction in World Space
     Vector3d camera_dir = camera_pos - ray.origin;
     camera_dir.normalize();
 
     // Gets the material properties for our colliding Superquadric
     const Material &mat = obj->GetMaterial();
+    
 
     // Defines Color Component Sums for Diffuse & Specular Light Reflection
     Vector3f diffuse_total = Vector3f::Zero();
@@ -254,7 +256,12 @@ Vector3f pointLighting(Ray &ray,
         Ray light_ray = Ray();
         light_ray.origin = light_pos;
         light_ray.direction = ray.origin - light_pos;
+        pair<float, Intersection> = scene->ClosestIntersection(ray);
+        if (pair.first < 1.0) {
+            continue;
+        }
 
+        /*
         double t = 0;
         bool obstructed = false;
         do {
@@ -275,18 +282,18 @@ Vector3f pointLighting(Ray &ray,
             }
 
             /* Updates t using Newton's Method (first-order Taylor Series approximation)
-             * based on the inside outside function of the object we're trying to color */
+             * based on the inside outside function of the object we're trying to color *   /
             double io_value = obj->IOFunction(current_location);
             double io_derivative = light_ray.direction.dot(obj->IOGradient(current_location));
             t -= io_value / io_derivative;
-            
+
         } while (t < 1.0 - close_enough_bound);
 
         // If the light is obstructed, skip to the next point light
         if (obstructed) {
             continue;
         }
-
+        */
 
         // Point Lighting Computation
         Vector3f light_color = lights[light_idx].color.ToVector();
@@ -318,7 +325,7 @@ Vector3f pointLighting(Ray &ray,
                       specular_total.cwiseProduct(mat.specular.ToVector())
                      ).cwiseMin(1.0f);
     return color;
-}
+}s
 
 
 // Part 2
@@ -329,9 +336,6 @@ void Scene::Raytrace() {
 
     double pixel_height = height / YRES;
     double pixel_width = width / XRES;
-
-    // Sets close_enough_bound based on the shortest length of a pixel
-    close_enough_bound = (1.0 / 20.0) * (pixel_height < pixel_width ? pixel_height : pixel_width);
 
     // Gets basis vectors applying camera translations 
     // NOTEEE: (may have to use transformations not translations - so including rotation)
