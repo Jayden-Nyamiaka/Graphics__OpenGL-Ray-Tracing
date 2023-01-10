@@ -232,7 +232,6 @@ Vector3f pointLighting(Ray &ray,
                        Vector3d camera_pos, 
                        vector<Light> &lights, 
                        Superquadric *obj, 
-                       vector<shared_ptr<Object>> root_objects
                        Scene *scene) {
     // Gets camera direction in World Space
     Vector3d camera_dir = camera_pos - ray.origin;
@@ -367,7 +366,7 @@ void Scene::Raytrace() {
                                             ray.origin, 
                                             lights, 
                                             closest.second.obj,
-                                            root_objects);
+                                            this);
             }
 
             img.SetPixel(i, j, pixel_color);
